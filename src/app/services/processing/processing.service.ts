@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { AbstractMesh, Mesh, Quaternion, TransformNode, Vector3 } from '@babylonjs/core';
+import { AbstractMesh, Mesh, Quaternion, TransformNode, Vector3, Angle } from '@babylonjs/core';
 import {
   BehaviorSubject,
   combineLatest,
@@ -467,16 +467,38 @@ export class ProcessingService {
         }
       })();
       for (const transform of transforms) {
-        const vector = new Vector3(
-          Number(transform?.getProperty('x') ?? 0) * -1,
+        let vector = new Vector3(
+          Number(transform?.getProperty('x') ?? 0),
           Number(transform?.getProperty('y') ?? 0),
           Number(transform?.getProperty('z') ?? 0),
         );
+        const x_inversion = new Vector3(-1, 1, 1);
+        
         if (transform.isScaleTransform) {
-          transformNode.scaling = vector;
+          transformNode.scaling.multiplyInPlace(vector);
         }
         if (transform.isRotateTransform) {
-          transformNode.rotation.addInPlace(vector);
+          
+          const deg_to_radians = Math.PI/180.0;
+          const angles = vector
+                            .multiply(x_inversion)
+                            .multiplyByFloats(deg_to_radians,deg_to_radians,deg_to_radians)
+                            .negate();
+          
+          let axesOrder=[0,1,2];
+          let initQuat = new Quaternion();
+          let accQuat = axesOrder.reduce( (acc, axis) => {
+             let axisVectorArray = [0.0,0.0,0.0]
+             axisVectorArray[axis] = 1.0;   
+             let axisVector = new Vector3().fromArray(axisVectorArray);       
+             let axisAngle = angles.asArray()[axis];
+             let axisQuat = Quaternion.RotationAxis(axisVector,axisAngle);
+             return acc.multiply(axisQuat);
+            }, initQuat);
+        
+        
+          transformNode.rotation =
+            accQuat.multiply( Quaternion.FromEulerVector(transformNode.rotation)).toEulerAngles();
         }
         if (transform.isTranslateTransform) {
           transformNode.position.addInPlace(vector);
