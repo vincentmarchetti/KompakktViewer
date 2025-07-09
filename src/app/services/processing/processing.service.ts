@@ -452,10 +452,11 @@ export class ProcessingService {
           return undefined;
         }
       })();
-      transformNode.position.set(
+      
+      const targetSelectorPosition = new Vector3(
         Number(pointSelector?.getProperty('x') ?? 0) * -1,
         Number(pointSelector?.getProperty('y') ?? 0),
-        Number(pointSelector?.getProperty('z') ?? 0),
+        Number(pointSelector?.getProperty('z') ?? 0)
       );
 
       const transforms = (() => {
@@ -476,6 +477,7 @@ export class ProcessingService {
         
         if (transform.isScaleTransform) {
           transformNode.scaling.multiplyInPlace(vector);
+          transformNode.position .multiplyInPlace(vector);
         }
         if (transform.isRotateTransform) {
           
@@ -496,15 +498,16 @@ export class ProcessingService {
              return acc.multiply(axisQuat);
             }, initQuat);
         
-        
-          transformNode.rotation =
-            accQuat.multiply( Quaternion.FromEulerVector(transformNode.rotation)).toEulerAngles();
+          let netQuat = accQuat.multiply( Quaternion.FromEulerVector(transformNode.rotation));
+          
+          transformNode.rotation = netQuat.toEulerAngles();
+          transformNode.position.applyRotationQuaternionInPlace(netQuat);
         }
         if (transform.isTranslateTransform) {
           transformNode.position.addInPlace(vector);
         }
       }
-
+      transformNode.position.addInPlace(targetSelectorPosition);
       return transformNode;
     };
 
