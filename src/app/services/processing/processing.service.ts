@@ -373,12 +373,7 @@ export class ProcessingService {
   }
 
   private async loadIIIF3DManifest(manifestUrl: string) {
-    const manifestJson = await fetch(decodeURIUntilStable(manifestUrl), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    const manifestJson = await fetch(decodeURIUntilStable(manifestUrl), {})
       .then(res => res.json() as object)
       .catch(error => {
         console.log('Error loading manifest:', error);
